@@ -65,6 +65,13 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      # default version contains some bug
+      - name: Upgrade Argon Theme
+        run: |
+          cd rk3328/friendlywrt/package/ctcgfw
+          rm -rf luci-theme-argon
+          git clone --depth 1 -b 19.07 https://github.com/jerrykuku/luci-theme-argon.git
+
       - name: Install R2s Flasher
         run: |
           mkdir -p rk3328/friendlywrt/package/songchenwen
