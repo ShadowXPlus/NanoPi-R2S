@@ -1,4 +1,4 @@
-name: lean's openwrt
+name: openwrt 19.07
 
 # Copyright (c) 2020, Chuck <fanck0605@qq.com>
 #
@@ -10,7 +10,7 @@ name: lean's openwrt
 on:
   push:
     branches:
-      - lean
+      - openwrt-19.07
     paths:
       - '.github/workflows/main.yml'
       - 'patches/**'
@@ -31,7 +31,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: lean
+          ref: openwrt-19.07
 
       # refer to klever1988/nanopi-openwrt and soffchen/NanoPi-R2S
       - name: Initialization Environment
@@ -56,41 +56,36 @@ jobs:
       - name: Initialization Source
         run: |
           rm -rf rk3328 && mkdir rk3328 && cd rk3328
-          repo init -u https://github.com/fanck0605/friendlywrt_mainfests -b master-lean -m rk3328.xml --repo-url=https://github.com/friendlyarm/repo --no-clone-bundle
+          repo init -u https://github.com/fanck0605/friendlywrt_mainfests -b openwrt-19.07 -m rk3328.xml --repo-url=https://github.com/friendlyarm/repo --no-clone-bundle
           repo sync -c --no-clone-bundle -j8
 
-      # refer to coolsnowwolf/lede
-      - name: Unlock some OpenWrt feeds
+      - name: Update OpenWrt Feeds
         run: |
           cd rk3328/friendlywrt
-          sed -i 's/#src-git/src-git/g' ./feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-      # default version contains some bug
-      - name: Upgrade Argon Theme
+      - name: Install R2s Flasher
         run: |
-          cd rk3328/friendlywrt/package/lean
-          rm -rf luci-theme-argon
-          git clone --depth 1 -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git
-
-      - name: Install filebrowser
-        run: |
-          rm -rf openwrt
-          git clone --depth 1 -b openwrt-18.06 https://github.com/project-openwrt/openwrt.git
-          mkdir -p rk3328/friendlywrt/package/ctcgfw
-          cp -a openwrt/package/ctcgfw/filebrowser rk3328/friendlywrt/package/ctcgfw/
-          cp -a openwrt/package/ctcgfw/luci-app-filebrowser rk3328/friendlywrt/package/ctcgfw/
-          rm -rf openwrt
-
-      - name: Install luci-app-r2sflasher
-        run: |
-          rm -rf r2sflasher
           mkdir -p rk3328/friendlywrt/package/songchenwen
-          git clone https://github.com/songchenwen/nanopi-r2s.git r2sflasher
+          git clone --depth 1 https://github.com/songchenwen/nanopi-r2s.git r2sflasher
           cp -a r2sflasher/luci-app-r2sflasher rk3328/friendlywrt/package/songchenwen/
           rm -rf r2sflasher
 
+      - name: Patch Openwrt Firewall
+        run: |
+          cd rk3328/friendlywrt
+          mkdir package/network/config/firewall/patches
+          wget -P package/network/config/firewall/patches/ https://github.com/LGA1150/fullconenat-fw3-patch/raw/master/fullconenat.patch
+          cd feeds/luci
+          wget -O- https://github.com/LGA1150/fullconenat-fw3-patch/raw/master/luci.patch | git apply
+
+      - name: Install UPX
+        run: |
+          ln -s /usr/bin/upx-ucl rk3328/friendlywrt/staging_dir/host/bin/upx
+
       # refer to klever1988/nanopi-openwrt, modified by Chuck <fanck0605@qq.com>
-      - name: Install Openwrt patches
+      - name: Patch Rockchip Kernel
         run: |
           rm -rf openwrt
           git clone --depth 1 -b master https://github.com/openwrt/openwrt.git
@@ -103,7 +98,7 @@ jobs:
           cd ../ && rm -rf openwrt
 
       # refer to klever1988/nanopi-openwrt, modified by Chuck <fanck0605@qq.com>
-      - name: Enable Kernel futures
+      - name: Enable Kernel Futures
         run: |
           cd rk3328/kernel/
           wget -O net/netfilter/xt_FULLCONENAT.c https://raw.githubusercontent.com/Chion82/netfilter-full-cone-nat/master/xt_FULLCONENAT.c
