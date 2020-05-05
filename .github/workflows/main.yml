@@ -59,6 +59,12 @@ jobs:
           repo init -u https://github.com/fanck0605/friendlywrt_mainfests -b openwrt-19.07 -m rk3328.xml --repo-url=https://github.com/friendlyarm/repo --no-clone-bundle
           repo sync -c --no-clone-bundle -j8
 
+      # refer to coolsnowwolf/lede
+      - name: Unlock some OpenWrt feeds
+        run: |
+          cd rk3328/friendlywrt
+          sed -i 's/#src-git/src-git/g' ./feeds.conf.default
+
       - name: Update OpenWrt Feeds
         run: |
           cd rk3328/friendlywrt
